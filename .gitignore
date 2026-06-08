@@ -1,0 +1,8 @@
+config.json
+progress.json
+lesson_audio.mp3
+today_lesson.json
+audio_debug.log
+__pycache__/
+*.pyc
+.env
