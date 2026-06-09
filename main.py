@@ -112,103 +112,82 @@ def generate_lesson(p, lang="zh-TW"):
         3: "Exam Mode: timed mock tests, accent refinement, targeting weak areas"
     }
 
-    prompt = f"""You are an expert OET trainer for healthcare professionals.
-Create a 30-minute daily lesson. The student is a nurse with B2 English targeting OET 365+.
-Their native language is {native}. Write ALL explanations, tips, feedback, and encouragement in {native}.
+    prompt = f"""You are a senior OET examiner and trainer with 10+ years' experience preparing nurses for Band B (350+).
+Create a 30-minute daily lesson. Student: nurse with B2 English targeting OET 365+.
+Native language: {native}. Write ALL explanations, tips, feedback, encouragement in {native}.
 
-Day {day} of 270 | Phase {ph}: {phases[ph]}
+Day {day} / 270 | Phase {ph}: {phases[ph]}
 Weak areas: {p.get('weak_areas', ['speaking', 'writing'])}
 
-Return ONLY a valid JSON object with no markdown, no explanation, no extra text:
+OET DESIGN RULES (follow strictly):
+- Vocabulary: real clinical nursing terms used in OET sub-tests
+- Listening: must be a nurse–patient or nurse–carer consultation (not general conversation). Vary scenario types: history-taking, discharge instruction, medication explanation, patient concern.
+- Speaking: OET role-play format — nurse-initiated interaction with a patient or carer. Task must require the nurse to explain, clarify, reassure, or elicit history. key_phrases must be clinically appropriate.
+- Reading: OET Part C style — professional healthcare passage, mix question types: main idea, vocabulary-in-context, inference/detail.
+- Writing: always OET referral letter style. tip must reference an actual OET writing criterion (purpose, content, conciseness, register, layout).
+
+Return ONLY a valid JSON object — no markdown, no extra text:
 {{
   "date": "{today}",
   "day": {day},
   "phase": {ph},
-  "encouragement": "1 encouraging sentence in {native} for Day {day}",
+  "encouragement": "1 motivating sentence in {native} for Day {day}",
   "vocabulary": [
     {{
-      "word": "nursing/medical term",
-      "ipa": "/pronunciation/",
+      "word": "clinical nursing term",
+      "ipa": "/IPA/",
       "native": "translation in {native}",
-      "example": "Full sentence in nursing clinical context",
-      "tip": "memory tip or common error — written in {native}"
+      "example": "1 sentence showing clinical use",
+      "tip": "memory tip or common error — in {native}"
     }},
-    {{
-      "word": "second term",
-      "ipa": "/pronunciation/",
-      "native": "translation in {native}",
-      "example": "Full sentence in nursing clinical context",
-      "tip": "memory tip — written in {native}"
-    }},
-    {{
-      "word": "third term",
-      "ipa": "/pronunciation/",
-      "native": "translation in {native}",
-      "example": "Full sentence in nursing clinical context",
-      "tip": "memory tip — written in {native}"
-    }}
+    {{"word": "term 2","ipa": "/IPA/","native": "translation in {native}","example": "clinical sentence","tip": "tip in {native}"}},
+    {{"word": "term 3","ipa": "/IPA/","native": "translation in {native}","example": "clinical sentence","tip": "tip in {native}"}}
   ],
   "listening": {{
-    "scenario": "One-sentence description of the clinical situation",
+    "scenario": "One-sentence OET-style clinical scenario",
     "dialogue": [
-      {{"speaker": "Nurse", "text": "Opening statement to patient"}},
-      {{"speaker": "Patient", "text": "Patient response"}},
-      {{"speaker": "Nurse", "text": "Follow-up question or instruction"}},
-      {{"speaker": "Patient", "text": "Patient provides information"}},
-      {{"speaker": "Nurse", "text": "Closing or next step"}}
+      {{"speaker": "Nurse", "text": "Opening — greeting or initial assessment"}},
+      {{"speaker": "Patient", "text": "Patient response with relevant clinical info"}},
+      {{"speaker": "Nurse", "text": "Follow-up question"}},
+      {{"speaker": "Patient", "text": "More clinical detail"}},
+      {{"speaker": "Nurse", "text": "Clarification or instruction"}},
+      {{"speaker": "Patient", "text": "Patient concern or question"}},
+      {{"speaker": "Nurse", "text": "Reassurance or closing plan"}}
     ],
     "questions": [
-      {{
-        "q": "Comprehension question about the dialogue",
-        "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
-        "answer": "A",
-        "explanation": "Why this answer is correct — written in {native}"
-      }}
+      {{"q": "Detail/fact question", "options": ["A. …","B. …","C. …","D. …"], "answer": "A", "explanation": "reason in {native}"}},
+      {{"q": "Inference or implication question", "options": ["A. …","B. …","C. …","D. …"], "answer": "B", "explanation": "reason in {native}"}},
+      {{"q": "Nurse's purpose or communication strategy question", "options": ["A. …","B. …","C. …","D. …"], "answer": "C", "explanation": "reason in {native}"}}
     ]
   }},
   "speaking": {{
-    "scenario": "Detailed clinical scenario for the role-play",
-    "task": "Specific speaking task instruction for the nurse",
-    "sample": "A model OET-level response demonstrating appropriate language (3-4 sentences)",
-    "key_phrases": ["key phrase 1", "key phrase 2", "key phrase 3"],
-    "watch_out": "Common mistake nurses make in this scenario — written in {native}"
+    "scenario": "OET role-play: patient name, age, presenting issue, relationship to nurse (e.g. post-op ward, discharge)",
+    "task": "Nurse's communication task: what to explain/elicit/reassure — written in English",
+    "sample": "3-4 sentence model answer showing OET B-level clinical language",
+    "key_phrases": ["clinical phrase 1", "clinical phrase 2", "clinical phrase 3", "clinical phrase 4"],
+    "watch_out": "One specific error nurses make in this scenario type — in {native}"
   }},
   "reading": {{
-    "title": "Short article title (clinical/OET context)",
-    "article": "A 5-7 sentence clinical passage in OET style containing at least 2 vocabulary words. OET B level.",
+    "title": "Professional clinical article title",
+    "article": "6-8 sentence OET Part C style passage. Contains at least 2 vocabulary words. B-level register.",
     "questions": [
-      {{
-        "q": "Comprehension or inference question",
-        "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
-        "answer": "A",
-        "explanation": "Why correct, referencing the article — written in {native}"
-      }},
-      {{
-        "q": "Vocabulary or meaning-in-context question",
-        "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
-        "answer": "B",
-        "explanation": "Why correct — written in {native}"
-      }},
-      {{
-        "q": "Inference or main idea question",
-        "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
-        "answer": "C",
-        "explanation": "Why correct — written in {native}"
-      }}
+      {{"q": "Main idea or purpose of the passage", "options": ["A. …","B. …","C. …","D. …"], "answer": "A", "explanation": "in {native}"}},
+      {{"q": "Vocabulary-in-context: what does [word] mean here?", "options": ["A. …","B. …","C. …","D. …"], "answer": "B", "explanation": "in {native}"}},
+      {{"q": "Inference question — what can be inferred?", "options": ["A. …","B. …","C. …","D. …"], "answer": "C", "explanation": "in {native}"}}
     ]
   }},
   "writing": {{
-    "tip": "One specific OET referral letter writing tip",
-    "before": "Example of a weak, non-OET sentence to avoid",
-    "after": "The improved OET-standard version of the same sentence",
-    "task": "Write 2-3 sentences about: specific clinical writing prompt"
+    "tip": "Specific OET referral letter criterion tip (purpose/content/conciseness/register/layout)",
+    "before": "Weak non-OET sentence from a student",
+    "after": "OET Band B rewrite of the same sentence",
+    "task": "Write [specific referral letter section] for this patient: [brief clinical scenario with relevant details]"
   }}
 }}"""
 
     client = anthropic.Anthropic(api_key=get_config()["anthropic_api_key"])
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=3600,
+        max_tokens=4200,
         messages=[{"role": "user", "content": prompt}]
     )
     text = resp.content[0].text.strip()
@@ -254,24 +233,30 @@ def evaluate_speaking(spoken, scenario, sample, lang="zh-TW"):
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=500,
-        messages=[{"role": "user", "content": f"""You are an encouraging OET speaking coach for a nurse (B2 English) practicing daily.
-Their native language is {native}. Write ALL feedback fields in {native}.
+        messages=[{"role": "user", "content": f"""You are a senior OET speaking examiner. Evaluate using OET's 4 official criteria.
+Student's native language: {native}. Write ALL feedback in {native}.
 
 Scenario: {scenario}
 Model answer: {sample}
 Student said: {spoken}
 
-Scoring guide (BE ENCOURAGING):
-1 = Very hard to understand, off-topic or almost silent
-2 = Attempted but major errors, missing key clinical info
-3 = Understandable, covers main point, some errors — PASSING attempt
-4 = Clear, covers key points well, minor errors only
-5 = Excellent, natural phrasing, all clinical info included
+OET Speaking Scoring (be encouraging but honest):
+1 = Unintelligible / completely off-topic
+2 = Partially understood, major clinical communication failure
+3 = PASSING — covers the clinical task, understandable despite errors
+4 = Good — clear clinical communication, minor language errors only
+5 = Excellent — natural, all OET criteria met
 
-If the student said something relevant, give AT LEAST a 3.
+OET criteria to assess:
+- Intelligibility: pronunciation & stress
+- Fluency: natural pacing, minimal hesitation
+- Appropriateness: correct clinical register
+- Grammar/Vocabulary: clinical terms used correctly
+
+If the student addressed the clinical scenario at all, give AT LEAST a 3. Be specific and kind.
 
 Return ONLY JSON (no markdown):
-{{"score": 3, "good": "specific praise in {native}", "improve": "ONE concrete fix in {native}", "vocabulary": "one better English word/phrase (show English example)", "oet_tip": "one OET exam tip in {native}"}}"""}]
+{{"score": 3, "good": "specific OET-criteria praise in {native}", "improve": "ONE concrete OET fix in {native}", "vocabulary": "a better clinical English phrase they should use (show exact English)", "oet_tip": "one practical OET exam strategy for this scenario type in {native}"}}"""}]
     )
     text = resp.content[0].text.strip()
     if "```" in text:
@@ -530,6 +515,48 @@ a,button{-webkit-tap-highlight-color:transparent}
 .progress-hero{height:5px;background:rgba(255,255,255,.18);border-radius:4px;overflow:hidden;margin-top:.6rem}
 .progress-hero-bar{height:100%;background:linear-gradient(90deg,rgba(255,255,255,.7),#fff);border-radius:4px;transition:width .7s ease}
 
+/* ── Onboarding ── */
+.onboard-overlay{position:fixed;inset:0;background:rgba(15,23,42,.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem;animation:obFadeIn .3s ease}
+@keyframes obFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes obFadeOut{from{opacity:1}to{opacity:0}}
+.onboard-card{background:#fff;border-radius:24px;max-width:400px;width:100%;padding:1.8rem 1.4rem 1.3rem;box-shadow:0 28px 80px rgba(0,0,0,.32);position:relative;max-height:92vh;overflow-y:auto}
+.onboard-skip{position:absolute;top:.9rem;right:.9rem;background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:.3rem .5rem;opacity:.55;transition:opacity .15s;line-height:1;border-radius:6px}
+.onboard-skip:hover{opacity:1;background:var(--surface2)}
+.ob-slide{min-height:280px;padding-bottom:.5rem}
+.ob-art{position:relative;width:104px;height:104px;margin:0 auto 1.3rem;display:flex;align-items:center;justify-content:center}
+.ob-ring{position:absolute;border-radius:50%;border:2.5px solid var(--p);animation:obRingPulse 2.4s ease-out infinite}
+.ob-ring-1{width:52px;height:52px}
+.ob-ring-2{width:76px;height:76px;animation-delay:.6s;opacity:.55}
+.ob-ring-3{width:100px;height:100px;animation-delay:1.2s;opacity:.25}
+@keyframes obRingPulse{0%{transform:scale(.72);opacity:.8}100%{transform:scale(1.18);opacity:0}}
+.ob-emoji{font-size:2.1rem;position:relative;z-index:1;animation:obFloat 3s ease-in-out infinite;line-height:1}
+@keyframes obFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.ob-h1{font-size:1.35rem;font-weight:800;text-align:center;color:var(--text);margin-bottom:.45rem;line-height:1.3;letter-spacing:-.01em}
+.ob-sub{font-size:.87rem;color:var(--muted);text-align:center;line-height:1.55;margin:0}
+.ob-h2{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:.9rem;text-align:center}
+.ob-tab-row{display:flex;align-items:flex-start;gap:.8rem;background:var(--surface2);border-radius:12px;padding:.65rem .85rem;border:1px solid var(--border);margin-bottom:.55rem}
+.ob-tab-ico{font-size:1.25rem;flex-shrink:0;margin-top:.05rem}
+.ob-tab-name{font-size:.86rem;font-weight:600;line-height:1.3}
+.ob-tab-desc{font-size:.74rem;color:var(--muted);margin-top:.1rem;line-height:1.4}
+.ob-target-pill{background:linear-gradient(90deg,var(--p-light),#e0f2fe);border:1px solid var(--p-mid);border-radius:20px;padding:.38rem 1rem;font-size:.82rem;font-weight:600;color:var(--p-dark);display:inline-block;margin:0 auto .9rem;text-align:center}
+.ob-phases{display:flex;align-items:center;justify-content:center;gap:.3rem;margin-bottom:1rem;flex-wrap:wrap}
+.ob-phase{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.4rem .6rem;font-size:.72rem;text-align:center;line-height:1.35}
+.ob-phase-num{display:inline-block;background:var(--p);color:#fff;border-radius:5px;padding:.05rem .38rem;font-weight:700;font-size:.68rem;margin-bottom:.15rem}
+.ob-arrow{color:var(--border);font-size:.85rem}
+.ob-tests{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.3rem}
+.ob-test{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.65rem .7rem;text-align:center}
+.ob-test-ico{font-size:1.2rem;margin-bottom:.2rem}
+.ob-test-name{font-size:.8rem;font-weight:600;color:var(--text)}
+.ob-test-info{font-size:.7rem;color:var(--muted);margin-top:.1rem;line-height:1.4}
+.ob-start-ico{font-size:3.5rem;text-align:center;margin:1.2rem 0 .8rem;animation:obFloat 2.5s ease-in-out infinite}
+.ob-streak{background:linear-gradient(120deg,var(--p-light),#f0fdf4);border:1px solid var(--p-mid);border-radius:12px;padding:.65rem 1rem;text-align:center;font-size:.85rem;font-weight:500;color:var(--p-dark);margin-top:1rem}
+.onboard-foot{display:flex;align-items:center;justify-content:space-between;margin-top:1.3rem;padding-top:1rem;border-top:1px solid var(--border)}
+.ob-dots{display:flex;gap:5px;align-items:center}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all .25s}
+.ob-dot.on{background:var(--p);width:18px;border-radius:4px}
+.ob-next{background:var(--p);color:#fff;border:none;border-radius:50px;padding:.52rem 1.35rem;font-size:.86rem;font-weight:600;cursor:pointer;transition:background .15s;font-family:var(--font);letter-spacing:.01em}
+.ob-next:hover{background:var(--p-dark)}
+
 /* ── Mobile ── */
 @media(max-width:400px){
   body{font-size:14px}
@@ -541,6 +568,73 @@ a,button{-webkit-tap-highlight-color:transparent}
 </style>
 </head>
 <body>
+
+<!-- ── Onboarding Overlay ── -->
+<div id="onboardOverlay" class="onboard-overlay" style="display:none">
+  <div class="onboard-card">
+    <button class="onboard-skip" onclick="closeOnboard()" title="Skip">✕</button>
+
+    <!-- Slide 0: Welcome -->
+    <div class="ob-slide" id="ob-s0">
+      <div class="ob-art">
+        <div class="ob-ring ob-ring-1"></div>
+        <div class="ob-ring ob-ring-2"></div>
+        <div class="ob-ring ob-ring-3"></div>
+        <div class="ob-emoji">🩺</div>
+      </div>
+      <h2 class="ob-h1" id="ob-title"></h2>
+      <p class="ob-sub" id="ob-tagline"></p>
+    </div>
+
+    <!-- Slide 1: Daily Practice -->
+    <div class="ob-slide" id="ob-s1" style="display:none">
+      <h3 class="ob-h2" id="ob-s2title"></h3>
+      <div class="ob-tab-row"><div class="ob-tab-ico">📚</div><div><div class="ob-tab-name">Vocabulary</div><div class="ob-tab-desc">3 clinical terms · flip cards · 🔊 pronunciation</div></div></div>
+      <div class="ob-tab-row"><div class="ob-tab-ico">📖</div><div><div class="ob-tab-name">Reading</div><div class="ob-tab-desc">OET Part C article · 3 MCQ (comprehension, vocab, inference)</div></div></div>
+      <div class="ob-tab-row"><div class="ob-tab-ico">🎧</div><div><div class="ob-tab-name">Listening</div><div class="ob-tab-desc">Nurse–patient dialogue · live highlight · 3 questions</div></div></div>
+      <div class="ob-tab-row"><div class="ob-tab-ico">🗣️</div><div><div class="ob-tab-name">Speaking</div><div class="ob-tab-desc">OET role-play · AI scored · keyword tracking</div></div></div>
+      <div class="ob-tab-row"><div class="ob-tab-ico">✍️</div><div><div class="ob-tab-name">Writing</div><div class="ob-tab-desc">OET referral letter practice · AI grading</div></div></div>
+    </div>
+
+    <!-- Slide 2: OET Roadmap -->
+    <div class="ob-slide" id="ob-s2" style="display:none">
+      <h3 class="ob-h2" id="ob-s3title"></h3>
+      <div style="text-align:center"><div class="ob-target-pill" id="ob-s3target"></div></div>
+      <div class="ob-phases">
+        <div class="ob-phase"><div class="ob-phase-num">P1</div><div>Day 1–90</div><div style="color:var(--muted);font-size:.68rem">Foundation</div></div>
+        <div class="ob-arrow">›</div>
+        <div class="ob-phase"><div class="ob-phase-num">P2</div><div>91–180</div><div style="color:var(--muted);font-size:.68rem">Core Skills</div></div>
+        <div class="ob-arrow">›</div>
+        <div class="ob-phase"><div class="ob-phase-num">P3</div><div>181–270</div><div style="color:var(--muted);font-size:.68rem">Exam Mode</div></div>
+      </div>
+      <div class="ob-tests">
+        <div class="ob-test"><div class="ob-test-ico">📖</div><div class="ob-test-name">Reading</div><div class="ob-test-info">60 min · 3 parts</div></div>
+        <div class="ob-test"><div class="ob-test-ico">🎧</div><div class="ob-test-name">Listening</div><div class="ob-test-info">40 min · 3 parts</div></div>
+        <div class="ob-test"><div class="ob-test-ico">🗣️</div><div class="ob-test-name">Speaking</div><div class="ob-test-info">20 min · 2 role-plays</div></div>
+        <div class="ob-test"><div class="ob-test-ico">✍️</div><div class="ob-test-name">Writing</div><div class="ob-test-info">45 min · referral letter</div></div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Start -->
+    <div class="ob-slide" id="ob-s3" style="display:none">
+      <div class="ob-start-ico">🎯</div>
+      <h2 class="ob-h1" id="ob-s4title"></h2>
+      <p class="ob-sub" id="ob-s4sub"></p>
+      <div class="ob-streak" id="ob-s4streak"></div>
+    </div>
+
+    <!-- Footer nav -->
+    <div class="onboard-foot">
+      <div class="ob-dots" id="ob-dots">
+        <div class="ob-dot on"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+      </div>
+      <button class="ob-next" id="ob-btn" onclick="nextOnboard()"></button>
+    </div>
+  </div>
+</div>
 
 <div class="hero">
   <div class="container-sm">
@@ -764,6 +858,59 @@ function toast(msg, type) {
 }
 
 let currentLang = localStorage.getItem('oet_lang') || 'zh-TW';
+
+// ── Onboarding i18n ──
+const OB = {
+  'zh-TW': {title:'OET 訓練營 🏥',tagline:'每天 30 分鐘 · 270 天達成 365+\n亞洲護士前進歐美的最強夥伴',s2:'每日五大練習',s3:'OET 考試攻略',target:'目標：Band B = 350 分以上',s4:'準備好了！',s4sub:'每天一小步，護理夢就在前方 ✨',streak:'🔥 連續天數從今天開始',next:'下一步 →',start:'開始今日課程 →'},
+  'zh-CN': {title:'OET 训练营 🏥',tagline:'每天 30 分钟 · 270 天达成 365+\n亚洲护士前往欧美的最强伙伴',s2:'每日五大练习',s3:'OET 考试攻略',target:'目标：Band B = 350 分以上',s4:'准备好了！',s4sub:'每天一小步，护理梦就在前方 ✨',streak:'🔥 连续天数从今天开始',next:'下一步 →',start:'开始今日课程 →'},
+  'ja':    {title:'OET トレーニング 🏥',tagline:'毎日30分 · 270日で365+達成\nアジアの看護師が世界へ羽ばたく',s2:'毎日の5練習',s3:'OET 試験マップ',target:'目標：Band B = 350点以上',s4:'準備完了！',s4sub:'毎日一歩、看護師の夢に近づく ✨',streak:'🔥 連続日数は今日からスタート',next:'次へ →',start:'今日のレッスンを始める →'},
+  'ko':    {title:'OET 트레이닝 🏥',tagline:'매일 30분 · 270일 만에 365+ 달성\n해외 취업을 꿈꾸는 간호사의 최강 파트너',s2:'매일 5가지 연습',s3:'OET 시험 가이드',target:'목표: Band B = 350점 이상',s4:'준비됐어요!',s4sub:'매일 한 걸음, 간호사의 꿈에 가까이 ✨',streak:'🔥 연속 일수 오늘부터 시작',next:'다음 →',start:'오늘 수업 시작 →'},
+  'th':    {title:'OET เทรนนิ่ง 🏥',tagline:'ทุกวัน 30 นาที · 270 วัน สู่ 365+\nพยาบาลเอเชียสู่ฝันต่างประเทศ',s2:'5 หัวข้อฝึกประจำวัน',s3:'แผนที่สอบ OET',target:'เป้าหมาย: Band B = 350+ คะแนน',s4:'พร้อมแล้ว!',s4sub:'ทีละก้าว สู่ฝันพยาบาลต่างแดน ✨',streak:'🔥 เริ่มนับวันต่อเนื่องวันนี้',next:'ถัดไป →',start:'เริ่มบทเรียนวันนี้ →'},
+  'vi':    {title:'OET Luyện thi 🏥',tagline:'30 phút/ngày · 270 ngày đạt 365+\nHành trình của điều dưỡng châu Á ra thế giới',s2:'5 bài tập hàng ngày',s3:'Bản đồ thi OET',target:'Mục tiêu: Band B = 350+ điểm',s4:'Sẵn sàng!',s4sub:'Mỗi ngày một bước, giấc mơ điều dưỡng chờ bạn ✨',streak:'🔥 Chuỗi ngày bắt đầu từ hôm nay',next:'Tiếp theo →',start:'Bắt đầu bài hôm nay →'},
+  'id':    {title:'OET Pelatihan 🏥',tagline:'30 menit/hari · 270 hari raih 365+\nPerawat Asia menuju karir global',s2:'5 latihan harian',s3:'Peta Ujian OET',target:'Target: Band B = 350+ poin',s4:'Siap!',s4sub:'Selangkah demi selangkah, impian perawat menanti ✨',streak:'🔥 Hari berturut-turut mulai hari ini',next:'Selanjutnya →',start:'Mulai pelajaran hari ini →'},
+};
+
+let obSlide = 0;
+const OB_TOTAL = 4;
+
+function showOnboard() {
+  document.getElementById('onboardOverlay').style.display = 'flex';
+  setObSlide(0);
+}
+function closeOnboard() {
+  const el = document.getElementById('onboardOverlay');
+  el.style.animation = 'obFadeOut .28s ease forwards';
+  setTimeout(() => { el.style.display = 'none'; el.style.animation = ''; }, 290);
+  localStorage.setItem('oet_onboard_v2', '1');
+}
+function nextOnboard() {
+  if (obSlide >= OB_TOTAL - 1) { closeOnboard(); return; }
+  setObSlide(obSlide + 1);
+}
+function setObSlide(n) {
+  obSlide = n;
+  const o = OB[currentLang] || OB['zh-TW'];
+  for (let i = 0; i < OB_TOTAL; i++) {
+    const s = document.getElementById('ob-s' + i);
+    if (s) s.style.display = i === n ? 'block' : 'none';
+  }
+  document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('on', i === n));
+  const btn = document.getElementById('ob-btn');
+  btn.textContent = n === OB_TOTAL - 1 ? o.start : o.next;
+  if (n === 0) {
+    document.getElementById('ob-title').textContent = o.title;
+    document.getElementById('ob-tagline').textContent = o.tagline;
+  } else if (n === 1) {
+    document.getElementById('ob-s2title').textContent = o.s2;
+  } else if (n === 2) {
+    document.getElementById('ob-s3title').textContent = o.s3;
+    document.getElementById('ob-s3target').textContent = o.target;
+  } else if (n === 3) {
+    document.getElementById('ob-s4title').textContent = o.s4;
+    document.getElementById('ob-s4sub').textContent = o.s4sub;
+    document.getElementById('ob-s4streak').textContent = o.streak;
+  }
+}
 
 function initLangUI() {
   const info = LANGS[currentLang] || LANGS['zh-TW'];
@@ -1163,6 +1310,7 @@ async function markTired() {
 
 // Run immediately — script is at end of body so DOM is ready
 initLangUI();
+if (!localStorage.getItem('oet_onboard_v2')) showOnboard();
 </script>
 </body>
 </html>"""
