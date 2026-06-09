@@ -206,9 +206,10 @@ def generate_audio(text):
     print(f"[ElevenLabs] status={resp.status_code} size={len(resp.content)}", flush=True)
     if resp.status_code == 200:
         AUDIO_FILE.write_bytes(resp.content)
-        return True
-    print(f"[ElevenLabs] Error body: {resp.text[:300]}", flush=True)
-    return False
+        return True, None
+    err = resp.text[:300]
+    print(f"[ElevenLabs] Error body: {err}", flush=True)
+    return False, f"status={resp.status_code} {err}"
 
 def evaluate_speaking(spoken, scenario, sample):
     client = anthropic.Anthropic(api_key=get_config()["anthropic_api_key"])
@@ -273,9 +274,9 @@ def api_audio():
         data = request.json
         text = data.get("text", "") if data else ""
         log.write_text(f"request_json={data}\ntext={text[:50]}\n", encoding="utf-8")
-        ok = generate_audio(text)
-        log.write_text(log.read_text() + f"ok={ok}\n", encoding="utf-8")
-        return jsonify({"ok": ok})
+        ok, err = generate_audio(text)
+        log.write_text(log.read_text() + f"ok={ok} err={err}\n", encoding="utf-8")
+        return jsonify({"ok": ok, "error": err})
     except Exception as e:
         log.write_text(log.read_text(encoding="utf-8") + f"exception={type(e).__name__}: {e}\n", encoding="utf-8")
         return jsonify({"ok": False, "error": str(e)})
