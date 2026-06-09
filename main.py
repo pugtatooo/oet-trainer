@@ -19,6 +19,16 @@ PROGRESS_FILE = BASE_DIR / "progress.json"
 AUDIO_FILE = BASE_DIR / "lesson_audio.mp3"
 LESSON_CACHE = BASE_DIR / "today_lesson.json"
 
+LANGUAGES = {
+    "zh-TW": {"name": "繁體中文", "flag": "🇹🇼", "prompt": "Traditional Chinese (Taiwan)"},
+    "zh-CN": {"name": "简体中文", "flag": "🇨🇳", "prompt": "Simplified Chinese"},
+    "ja":    {"name": "日本語",   "flag": "🇯🇵", "prompt": "Japanese"},
+    "ko":    {"name": "한국어",   "flag": "🇰🇷", "prompt": "Korean"},
+    "th":    {"name": "ภาษาไทย", "flag": "🇹🇭", "prompt": "Thai"},
+    "vi":    {"name": "Tiếng Việt","flag":"🇻🇳", "prompt": "Vietnamese"},
+    "id":    {"name": "Bahasa Indonesia","flag":"🇮🇩","prompt": "Indonesian"},
+}
+
 app = Flask(__name__)
 _config = None
 
@@ -84,15 +94,18 @@ def get_phase(day):
 
 # ─── AI Services ──────────────────────────────────────────────────────────────
 
-def generate_lesson(p):
+def generate_lesson(p, lang="zh-TW"):
     today = date.today().isoformat()
-    if LESSON_CACHE.exists():
-        cached = json.loads(LESSON_CACHE.read_text(encoding="utf-8"))
+    cache_file = BASE_DIR / f"today_lesson_{lang}.json"
+    if cache_file.exists():
+        cached = json.loads(cache_file.read_text(encoding="utf-8"))
         if cached.get("date") == today:
             return cached
 
     day = max(p.get("current_day", 1), 1)
     ph = get_phase(day)
+    lang_info = LANGUAGES.get(lang, LANGUAGES["zh-TW"])
+    native = lang_info["prompt"]
     phases = {
         1: "Foundation: nursing vocabulary, OET format introduction, basic referral letter structure",
         2: "Core Skills: patient consultation role-plays, complete referral letters, clinical listening",
@@ -100,39 +113,39 @@ def generate_lesson(p):
     }
 
     prompt = f"""You are an expert OET trainer for healthcare professionals.
-Create a 30-minute daily lesson. The student is a Taiwanese nurse with B2 English targeting OET 365+.
+Create a 30-minute daily lesson. The student is a nurse with B2 English targeting OET 365+.
+Their native language is {native}. Write ALL explanations, tips, feedback, and encouragement in {native}.
 
 Day {day} of 270 | Phase {ph}: {phases[ph]}
 Weak areas: {p.get('weak_areas', ['speaking', 'writing'])}
-Missed sessions so far: {len(p.get('missed_dates', []))}
 
 Return ONLY a valid JSON object with no markdown, no explanation, no extra text:
 {{
   "date": "{today}",
   "day": {day},
   "phase": {ph},
-  "encouragement": "一句鼓勵話（繁體中文，針對今天是第{day}天）",
+  "encouragement": "1 encouraging sentence in {native} for Day {day}",
   "vocabulary": [
     {{
       "word": "nursing/medical term",
       "ipa": "/pronunciation/",
-      "zh": "中文翻譯",
+      "native": "translation in {native}",
       "example": "Full sentence in nursing clinical context",
-      "tip": "記憶技巧或台灣護士常見錯誤"
+      "tip": "memory tip or common error — written in {native}"
     }},
     {{
       "word": "second term",
       "ipa": "/pronunciation/",
-      "zh": "中文翻譯",
+      "native": "translation in {native}",
       "example": "Full sentence in nursing clinical context",
-      "tip": "記憶技巧"
+      "tip": "memory tip — written in {native}"
     }},
     {{
       "word": "third term",
       "ipa": "/pronunciation/",
-      "zh": "中文翻譯",
+      "native": "translation in {native}",
       "example": "Full sentence in nursing clinical context",
-      "tip": "記憶技巧"
+      "tip": "memory tip — written in {native}"
     }}
   ],
   "listening": {{
@@ -149,7 +162,7 @@ Return ONLY a valid JSON object with no markdown, no explanation, no extra text:
         "q": "Comprehension question about the dialogue",
         "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
         "answer": "A",
-        "explanation": "Why this answer is correct"
+        "explanation": "Why this answer is correct — written in {native}"
       }}
     ]
   }},
@@ -158,29 +171,29 @@ Return ONLY a valid JSON object with no markdown, no explanation, no extra text:
     "task": "Specific speaking task instruction for the nurse",
     "sample": "A model OET-level response demonstrating appropriate language (3-4 sentences)",
     "key_phrases": ["key phrase 1", "key phrase 2", "key phrase 3"],
-    "watch_out": "Common mistake Taiwanese nurses make in this type of scenario"
+    "watch_out": "Common mistake nurses make in this scenario — written in {native}"
   }},
   "reading": {{
     "title": "Short article title (clinical/OET context)",
-    "article": "A 5-7 sentence clinical passage in OET style. It should contain at least 2 of today's vocabulary words used naturally. Write at the OET B level — clear, professional nursing context.",
+    "article": "A 5-7 sentence clinical passage in OET style containing at least 2 vocabulary words. OET B level.",
     "questions": [
       {{
-        "q": "Comprehension or inference question about the article",
+        "q": "Comprehension or inference question",
         "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
         "answer": "A",
-        "explanation": "Why this answer is correct, with reference to the article (繁體中文)"
+        "explanation": "Why correct, referencing the article — written in {native}"
       }},
       {{
         "q": "Vocabulary or meaning-in-context question",
         "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
         "answer": "B",
-        "explanation": "Why this answer is correct (繁體中文)"
+        "explanation": "Why correct — written in {native}"
       }},
       {{
         "q": "Inference or main idea question",
         "options": ["A. first option", "B. second option", "C. third option", "D. fourth option"],
         "answer": "C",
-        "explanation": "Why this answer is correct (繁體中文)"
+        "explanation": "Why correct — written in {native}"
       }}
     ]
   }},
@@ -207,7 +220,7 @@ Return ONLY a valid JSON object with no markdown, no explanation, no extra text:
                 break
 
     lesson = json.loads(text)
-    LESSON_CACHE.write_text(json.dumps(lesson, indent=2, ensure_ascii=False), encoding="utf-8")
+    cache_file.write_text(json.dumps(lesson, indent=2, ensure_ascii=False), encoding="utf-8")
     return lesson
 
 def generate_audio(text):
@@ -235,28 +248,30 @@ def generate_audio(text):
     print(f"[ElevenLabs] Error body: {err}", flush=True)
     return False, f"status={resp.status_code} {err}"
 
-def evaluate_speaking(spoken, scenario, sample):
+def evaluate_speaking(spoken, scenario, sample, lang="zh-TW"):
+    native = LANGUAGES.get(lang, LANGUAGES["zh-TW"])["prompt"]
     client = anthropic.Anthropic(api_key=get_config()["anthropic_api_key"])
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=500,
-        messages=[{"role": "user", "content": f"""You are an encouraging OET speaking coach for a Taiwanese nurse (B2 English) who is practicing daily.
+        messages=[{"role": "user", "content": f"""You are an encouraging OET speaking coach for a nurse (B2 English) practicing daily.
+Their native language is {native}. Write ALL feedback fields in {native}.
 
 Scenario: {scenario}
 Model answer: {sample}
 Student said: {spoken}
 
-Scoring guide (BE ENCOURAGING, most learners should score 3-4 with reasonable effort):
+Scoring guide (BE ENCOURAGING):
 1 = Very hard to understand, off-topic or almost silent
 2 = Attempted but major errors, missing key clinical info
-3 = Understandable, covers the main point, some grammar/vocabulary issues — this is a PASSING attempt
-4 = Clear, covers key points well, minor errors only — good OET-ready response
-5 = Excellent, natural phrasing, all key clinical info included, exam-ready
+3 = Understandable, covers main point, some errors — PASSING attempt
+4 = Clear, covers key points well, minor errors only
+5 = Excellent, natural phrasing, all clinical info included
 
-Important: if the student said something relevant to the scenario, give AT LEAST a 3. Be specific and kind.
+If the student said something relevant, give AT LEAST a 3.
 
 Return ONLY JSON (no markdown):
-{{"score": 3, "good": "specific praise about what they said well (繁體中文)", "improve": "ONE concrete thing to fix next time (繁體中文)", "vocabulary": "one better word or phrase they could use (show English example)", "oet_tip": "one practical OET exam tip for this scenario type (繁體中文)"}}"""}]
+{{"score": 3, "good": "specific praise in {native}", "improve": "ONE concrete fix in {native}", "vocabulary": "one better English word/phrase (show English example)", "oet_tip": "one OET exam tip in {native}"}}"""}]
     )
     text = resp.content[0].text.strip()
     if "```" in text:
@@ -298,7 +313,10 @@ def index():
 
 @app.route("/api/lesson")
 def api_lesson():
-    return jsonify(generate_lesson(load_p()))
+    lang = request.args.get("lang", "zh-TW")
+    if lang not in LANGUAGES:
+        lang = "zh-TW"
+    return jsonify(generate_lesson(load_p(), lang))
 
 @app.route("/api/audio", methods=["POST"])
 def api_audio():
@@ -323,22 +341,26 @@ def serve_audio():
 @app.route("/api/evaluate", methods=["POST"])
 def api_evaluate():
     d = request.json
-    return jsonify(evaluate_speaking(d["spoken"], d["scenario"], d["sample"]))
+    lang = d.get("lang", "zh-TW")
+    return jsonify(evaluate_speaking(d["spoken"], d["scenario"], d["sample"], lang))
 
 @app.route("/api/evaluate-writing", methods=["POST"])
 def api_evaluate_writing():
     d = request.json
+    lang = d.get("lang", "zh-TW")
+    native = LANGUAGES.get(lang, LANGUAGES["zh-TW"])["prompt"]
     client = anthropic.Anthropic(api_key=get_config()["anthropic_api_key"])
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=600,
         messages=[{"role": "user", "content": f"""You are an OET writing examiner for nurses.
+The student's native language is {native}. Write ALL feedback in {native}.
 Task: {d['task']}
 Tip: {d['tip']}
 Student wrote: {d['answer']}
 
 Return ONLY JSON (no markdown):
-{{"score": 1, "oet_level": "Below B / B / Above B", "grammar": "grammar feedback in Traditional Chinese", "vocabulary": "vocabulary feedback in Traditional Chinese", "structure": "structure/coherence feedback in Traditional Chinese", "rewrite": "improved version of their sentences in English", "summary": "one-line overall comment in Traditional Chinese"}}
+{{"score": 1, "oet_level": "Below B / B / Above B", "grammar": "grammar feedback in {native}", "vocabulary": "vocabulary feedback in {native}", "structure": "structure feedback in {native}", "rewrite": "improved version in English", "summary": "one-line comment in {native}"}}
 Score 1-5 where 5 is OET Band B."""}]
     )
     text = resp.content[0].text.strip()
@@ -463,6 +485,14 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
 /* ── Bottom Bar ── */
 .bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:.8rem 1rem;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,.07)}
 
+/* ── Language Selector ── */
+.lang-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:.25rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
+.lang-btn:hover{background:rgba(255,255,255,.28)}
+.lang-menu{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:170px;overflow:hidden;z-index:200;border:1px solid var(--border)}
+.lang-option{padding:.6rem 1rem;font-size:.85rem;cursor:pointer;transition:background .12s;color:var(--text)}
+.lang-option:hover{background:var(--p-light)}
+.lang-option.active{background:var(--p-light);color:var(--p);font-weight:600}
+
 /* ── Misc ── */
 .ipa{color:var(--muted);font-size:.84rem;font-style:italic}
 .progress-hero{height:6px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden}
@@ -473,14 +503,31 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
 
 <div class="hero">
   <div class="container-sm">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-3">
       <div>
         <h5 class="mb-0 fw-bold">🏥 OET 訓練營</h5>
         <div style="font-size:.78rem;opacity:.78">目標 365+ · 9 個月計畫</div>
       </div>
-      <div class="text-end">
-        <div style="font-size:1.75rem;font-weight:800;line-height:1">🔥 {{ streak }}</div>
-        <div style="font-size:.7rem;opacity:.8">連續天數</div>
+      <div class="text-end d-flex flex-column align-items-end gap-1">
+        <!-- Language selector -->
+        <div class="lang-wrap" style="position:relative">
+          <button class="lang-btn" id="langToggle" onclick="toggleLangMenu()" type="button">
+            <span id="langFlag"></span> <span id="langName"></span> ▾
+          </button>
+          <div class="lang-menu" id="langMenu" style="display:none">
+            <div class="lang-option" data-lang="zh-TW">🇹🇼 繁體中文</div>
+            <div class="lang-option" data-lang="zh-CN">🇨🇳 简体中文</div>
+            <div class="lang-option" data-lang="ja">🇯🇵 日本語</div>
+            <div class="lang-option" data-lang="ko">🇰🇷 한국어</div>
+            <div class="lang-option" data-lang="th">🇹🇭 ภาษาไทย</div>
+            <div class="lang-option" data-lang="vi">🇻🇳 Tiếng Việt</div>
+            <div class="lang-option" data-lang="id">🇮🇩 Bahasa Indonesia</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:1.75rem;font-weight:800;line-height:1">🔥 {{ streak }}</div>
+          <div style="font-size:.7rem;opacity:.8">連續天數</div>
+        </div>
       </div>
     </div>
     <div class="row g-2 mb-3">
@@ -640,6 +687,50 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
 let lesson = null, recognition = null, shouldRecord = false, finalTranscript = '';
 let scoreHistory = [];
 
+// ── Language ──
+const LANGS = {
+  'zh-TW': {flag:'🇹🇼', name:'繁體中文'},
+  'zh-CN': {flag:'🇨🇳', name:'简体中文'},
+  'ja':    {flag:'🇯🇵', name:'日本語'},
+  'ko':    {flag:'🇰🇷', name:'한국어'},
+  'th':    {flag:'🇹🇭', name:'ภาษาไทย'},
+  'vi':    {flag:'🇻🇳', name:'Tiếng Việt'},
+  'id':    {flag:'🇮🇩', name:'Bahasa Indonesia'},
+};
+let currentLang = localStorage.getItem('oet_lang') || 'zh-TW';
+
+function initLangUI() {
+  const info = LANGS[currentLang] || LANGS['zh-TW'];
+  document.getElementById('langFlag').textContent = info.flag;
+  document.getElementById('langName').textContent = info.name;
+  document.querySelectorAll('.lang-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.lang === currentLang);
+    el.onclick = () => setLang(el.dataset.lang);
+  });
+}
+function toggleLangMenu() {
+  const m = document.getElementById('langMenu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+function setLang(lang) {
+  if (lang === currentLang) { document.getElementById('langMenu').style.display='none'; return; }
+  localStorage.setItem('oet_lang', lang);
+  currentLang = lang;
+  document.getElementById('langMenu').style.display = 'none';
+  // clear lesson display and reload
+  document.getElementById('lessonBox').style.display = 'none';
+  document.getElementById('loadingBox').style.display = 'block';
+  lesson = null;
+  fetch('/api/lesson?lang=' + lang)
+    .then(r => r.json())
+    .then(l => { lesson = l; initLangUI(); renderLesson(l); })
+    .catch(e => document.getElementById('loadingBox').innerHTML =
+      '<div class="danger-box m-3">⚠️ ' + e.message + '</div>');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.lang-wrap')) document.getElementById('langMenu').style.display = 'none';
+});
+
 // Tab switching with animation
 document.querySelectorAll('[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -661,8 +752,9 @@ document.querySelectorAll('[data-tab]').forEach(btn => {
 });
 
 window.onload = async () => {
+  initLangUI();
   try {
-    lesson = await (await fetch('/api/lesson')).json();
+    lesson = await (await fetch('/api/lesson?lang=' + currentLang)).json();
     renderLesson(lesson);
   } catch(e) {
     document.getElementById('loadingBox').innerHTML =
@@ -691,7 +783,7 @@ function renderLesson(l) {
         </div>
         <div class="flip-card-back">
           <div class="d-flex justify-content-between mb-2">
-            <span class="fw-bold" style="color:var(--success)">${v.zh}</span>
+            <span class="fw-bold" style="color:var(--success)">${v.native || v.zh || ''}</span>
             <span class="flip-hint">← 點我翻回</span>
           </div>
           <div class="small fst-italic text-secondary">"${v.example}"</div>
@@ -904,7 +996,7 @@ async function evalSpeak() {
   btn.disabled = true; btn.textContent = '評分中...';
   const f = await (await fetch('/api/evaluate', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({spoken, scenario: lesson.speaking.scenario, sample: lesson.speaking.sample})
+    body: JSON.stringify({spoken, scenario: lesson.speaking.scenario, sample: lesson.speaking.sample, lang: currentLang})
   })).json();
   // Score history
   scoreHistory.push(f.score);
@@ -942,7 +1034,7 @@ async function evalWrite() {
   btn.disabled = true; btn.textContent = '批改中...';
   const f = await (await fetch('/api/evaluate-writing', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ answer, task: document.getElementById('writeTask').textContent, tip: document.getElementById('writeTip').textContent })
+    body: JSON.stringify({ answer, task: document.getElementById('writeTask').textContent, tip: document.getElementById('writeTip').textContent, lang: currentLang })
   })).json();
   const stars = '⭐'.repeat(f.score) + '☆'.repeat(5-f.score);
   document.getElementById('writeFeedback').innerHTML = `
