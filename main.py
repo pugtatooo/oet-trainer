@@ -643,6 +643,12 @@ let scoreHistory = [];
 // Tab switching with animation
 document.querySelectorAll('[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
+    const leaving = document.querySelector('[data-tab].active');
+    if (leaving && leaving.dataset.tab === 'listen') {
+      window.speechSynthesis.cancel();
+      const playBtn = document.getElementById('playBtn');
+      if (playBtn) { playBtn.disabled = false; playBtn.textContent = '▶ 播放對話'; }
+    }
     document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
     btn.classList.add('active');
