@@ -1022,7 +1022,7 @@ function startRecord() {
     const full = finalTranscript + interim;
     document.getElementById('transcriptText').innerHTML = highlightTranscript(full);
     document.getElementById('transcriptBox').style.display = 'block';
-    const words = full.trim().split(/\s+/);
+    const words = full.trim().split(/\\s+/);
     renderPhrases(lesson.speaking.key_phrases, words);
   };
   recognition.onend = () => {
@@ -1078,7 +1078,7 @@ function toggleSample() {
 
 // Writing
 function updateWordCount() {
-  const words = document.getElementById('writeAnswer').value.trim().split(/\s+/).filter(w=>w).length;
+  const words = document.getElementById('writeAnswer').value.trim().split(/\\s+/).filter(w=>w).length;
   document.getElementById('wordCount').textContent = words + ' words';
 }
 
