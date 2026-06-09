@@ -630,33 +630,30 @@ function renderLesson(l) {
 }
 
 // Listening
-async function playListening() {
+function playListening() {
   const btn = document.getElementById('playBtn');
+  if (!window.speechSynthesis) { alert('你的瀏覽器不支援語音合成，請使用 Chrome 或 Edge'); return; }
+  window.speechSynthesis.cancel();
   btn.disabled = true;
-  btn.textContent = '⏳ 生成語音中...';
-  const text = lesson.listening.dialogue.map(d => d.speaker + ' says: ' + d.text).join('. ');
-  const resp = await fetch('/api/audio', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({text})
-  });
-  const data = await resp.json();
-  if (data.ok) {
-    const audio = document.getElementById('audioEl');
-    audio.src = '/audio?t=' + Date.now();
-    audio.style.display = 'block';
-    audio.play();
-    btn.textContent = '▶ 重新播放';
-    btn.disabled = false;
-    document.getElementById('showDialogueBtn').style.display = 'inline';
-    audio.onended = () => {
+  btn.textContent = '🔊 播放中...';
+  const lines = lesson.listening.dialogue.map(d => d.speaker + ' says: ' + d.text);
+  let i = 0;
+  function speakNext() {
+    if (i >= lines.length) {
+      btn.textContent = '▶ 重新播放';
+      btn.disabled = false;
+      document.getElementById('showDialogueBtn').style.display = 'inline';
       document.getElementById('listenQs').innerHTML = renderQuestions(lesson.listening.questions);
       document.getElementById('listenQs').style.display = 'block';
       document.getElementById('showAnswerBtn').style.display = 'inline';
-    };
-  } else {
-    btn.textContent = '⚠️ 失敗，請重試';
-    btn.disabled = false;
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(lines[i++]);
+    u.lang = 'en-US'; u.rate = 0.9;
+    u.onend = speakNext;
+    window.speechSynthesis.speak(u);
   }
+  speakNext();
 }
 
 function renderQuestions(qs) {
