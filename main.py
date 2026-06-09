@@ -41,7 +41,15 @@ def get_config():
             }
     return _config
 
+DEFAULT_PROGRESS = {
+    "start_date": None, "current_day": 1, "streak": 0,
+    "total_completed": 0, "last_session": None,
+    "completed_dates": [], "missed_dates": [], "weak_areas": ["speaking", "writing"]
+}
+
 def load_p():
+    if not PROGRESS_FILE.exists():
+        return dict(DEFAULT_PROGRESS)
     return json.loads(PROGRESS_FILE.read_text(encoding="utf-8"))
 
 def save_p(p):
