@@ -215,15 +215,24 @@ def evaluate_speaking(spoken, scenario, sample):
     client = anthropic.Anthropic(api_key=get_config()["anthropic_api_key"])
     resp = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=400,
-        messages=[{"role": "user", "content": f"""You are an OET speaking examiner.
+        max_tokens=500,
+        messages=[{"role": "user", "content": f"""You are an encouraging OET speaking coach for a Taiwanese nurse (B2 English) who is practicing daily.
+
 Scenario: {scenario}
 Model answer: {sample}
 Student said: {spoken}
 
-Return ONLY JSON:
-{{"score": 1, "good": "one thing done well", "improve": "one specific improvement needed", "vocabulary": "word choice feedback", "oet_tip": "exam-specific tip for this type of scenario"}}
-Score 1-5 where 5 is OET Band B level."""}]
+Scoring guide (BE ENCOURAGING, most learners should score 3-4 with reasonable effort):
+1 = Very hard to understand, off-topic or almost silent
+2 = Attempted but major errors, missing key clinical info
+3 = Understandable, covers the main point, some grammar/vocabulary issues — this is a PASSING attempt
+4 = Clear, covers key points well, minor errors only — good OET-ready response
+5 = Excellent, natural phrasing, all key clinical info included, exam-ready
+
+Important: if the student said something relevant to the scenario, give AT LEAST a 3. Be specific and kind.
+
+Return ONLY JSON (no markdown):
+{{"score": 3, "good": "specific praise about what they said well (繁體中文)", "improve": "ONE concrete thing to fix next time (繁體中文)", "vocabulary": "one better word or phrase they could use (show English example)", "oet_tip": "one practical OET exam tip for this scenario type (繁體中文)"}}"""}]
     )
     text = resp.content[0].text.strip()
     if "```" in text:
