@@ -433,11 +433,10 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
 
 /* ── Vocab Flip Cards ── */
 .flip-card{perspective:900px;cursor:pointer;margin-bottom:.75rem;user-select:none}
-.flip-card-inner{position:relative;transition:transform .42s ease;transform-style:preserve-3d;min-height:110px}
+.flip-card-inner{position:relative;transition:transform .42s ease;transform-style:preserve-3d}
 .flip-card.flipped .flip-card-inner{transform:rotateY(180deg)}
-.flip-card-front,.flip-card-back{backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;padding:.95rem 1.1rem;position:absolute;top:0;left:0;right:0}
-.flip-card-front{background:var(--p-light);border:1.5px solid #bfdbfe;position:relative}
-.flip-card-back{background:#f0fdf4;border:1.5px solid #bbf7d0;transform:rotateY(180deg)}
+.flip-card-front{backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;padding:.95rem 1.1rem;position:relative;background:var(--p-light);border:1.5px solid #bfdbfe;min-height:150px}
+.flip-card-back{backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;padding:.95rem 1.1rem;position:absolute;top:0;left:0;right:0;bottom:0;background:#f0fdf4;border:1.5px solid #bbf7d0;transform:rotateY(180deg)}
 .flip-hint{font-size:.68rem;color:var(--muted);position:absolute;top:.5rem;right:.7rem;opacity:.6}
 .speak-btn{background:none;border:none;padding:0;cursor:pointer;font-size:1rem;margin-left:.4rem;opacity:.6;transition:opacity .15s}
 .speak-btn:hover{opacity:1}
@@ -493,6 +492,11 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
 .lang-option:hover{background:var(--p-light)}
 .lang-option.active{background:var(--p-light);color:var(--p);font-weight:600}
 
+/* ── Toast ── */
+.toast-msg{position:fixed;top:1.2rem;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:.55rem 1.3rem;border-radius:20px;font-size:.84rem;z-index:9999;pointer-events:none;animation:toastIn .2s ease;white-space:nowrap}
+.toast-msg.error{background:var(--danger)}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+
 /* ── Misc ── */
 .ipa{color:var(--muted);font-size:.84rem;font-style:italic}
 .progress-hero{height:6px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden}
@@ -547,8 +551,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
 
   <div id="loadingBox" class="card p-4 text-center">
     <div class="spinner-border text-primary mb-3" style="margin:0 auto;width:2rem;height:2rem"></div>
-    <div class="text-muted">正在為你生成今日課程...</div>
-    <div class="text-muted mt-1" style="font-size:.83rem">首次約需 10 秒</div>
+    <div class="text-muted" id="loadingText">Loading...</div>
+    <div class="text-muted mt-1" style="font-size:.83rem" id="loadingSubText">First time ~10 sec</div>
   </div>
 
   <div id="lessonBox" style="display:none">
@@ -578,7 +582,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
           <div class="fw-semibold small mb-2" id="readTitle"></div>
           <div class="p-3 rounded-3 mb-4 small lh-lg" style="background:#f8fafc;border:1.5px solid var(--border);line-height:1.85" id="readArticle"></div>
           <div id="readQs"></div>
-          <button class="btn btn-primary btn-sm mt-3" id="readSubmitBtn" onclick="checkReading()">提交答案</button>
+          <button class="btn btn-primary btn-sm mt-3" id="readSubmitBtn" onclick="checkReading()">✓ Submit</button>
           <div id="readResults" style="display:none" class="mt-3"></div>
         </div>
       </div>
@@ -622,12 +626,12 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
             <button class="btn btn-primary" id="startBtn" onclick="startRecord()">🎤 開始錄音</button>
             <button class="btn btn-danger" id="stopBtn" onclick="stopRecord()" disabled>⏹ 停止</button>
           </div>
-          <div class="text-center text-muted small mb-2" id="recordStatus">按「開始錄音」（需 Chrome 或 Edge）</div>
+          <div class="text-center text-muted small mb-2" id="recordStatus"></div>
           <div id="transcriptBox" style="display:none" class="mb-3">
             <div class="small fw-semibold text-muted mb-1">你說的：</div>
             <div id="transcriptText" class="transcript-box"></div>
             <div class="d-flex gap-2 mt-2 align-items-center flex-wrap">
-              <button class="btn btn-primary btn-sm" onclick="evalSpeak()">AI 評分</button>
+              <button class="btn btn-primary btn-sm" id="evalSpeakBtn" onclick="evalSpeak(this)">AI 評分</button>
               <div id="scoreHistory" class="score-history"></div>
             </div>
           </div>
@@ -684,10 +688,10 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;padding-bo
 </div>
 
 <script>
-let lesson = null, recognition = null, shouldRecord = false, finalTranscript = '';
+let lesson = null, recognition = null, finalTranscript = '';
 let scoreHistory = [];
 
-// ── Language ──
+// ── i18n ──
 const LANGS = {
   'zh-TW': {flag:'🇹🇼', name:'繁體中文'},
   'zh-CN': {flag:'🇨🇳', name:'简体中文'},
@@ -697,6 +701,29 @@ const LANGS = {
   'vi':    {flag:'🇻🇳', name:'Tiếng Việt'},
   'id':    {flag:'🇮🇩', name:'Bahasa Indonesia'},
 };
+const UI = {
+  'zh-TW': {loading:'正在生成今日課程…',loadSub:'首次約需 10 秒',hint:'按「開始錄音」（需 Chrome / Edge）',rec:'🔴 錄音中…',done:'錄音完成，可按 AI 評分',scoring:'評分中…',rescore:'🔄 重新評分',grading:'批改中…',regrade:'✏️ 重新批改',results:'批改結果',attempt:'第{n}次',noRec:'請先錄音',noWrite:'請先輸入答案',notAll:'請先回答所有題目',noBrowser:'請使用 Chrome 或 Edge'},
+  'zh-CN': {loading:'正在生成今日课程…',loadSub:'首次约需 10 秒',hint:'按「开始录音」（需 Chrome / Edge）',rec:'🔴 录音中…',done:'录音完成，可按 AI 评分',scoring:'评分中…',rescore:'🔄 重新评分',grading:'批改中…',regrade:'✏️ 重新批改',results:'批改结果',attempt:'第{n}次',noRec:'请先录音',noWrite:'请先输入答案',notAll:'请先回答所有题目',noBrowser:'请使用 Chrome 或 Edge'},
+  'ja':    {loading:'本日のレッスンを生成中…',loadSub:'初回は約10秒',hint:'「録音開始」を押す (Chrome/Edge)',rec:'🔴 録音中…',done:'録音完了 — AI採点できます',scoring:'採点中…',rescore:'🔄 再採点',grading:'添削中…',regrade:'✏️ 再添削',results:'採点結果',attempt:'{n}回目',noRec:'先に録音してください',noWrite:'先に答えを入力してください',notAll:'全問に解答してください',noBrowser:'Chrome または Edge を使用してください'},
+  'ko':    {loading:'오늘 레슨을 생성 중…',loadSub:'처음에는 약 10초 소요',hint:'「녹음 시작」누르기 (Chrome/Edge)',rec:'🔴 녹음 중…',done:'녹음 완료 — AI 채점 가능',scoring:'채점 중…',rescore:'🔄 재채점',grading:'첨삭 중…',regrade:'✏️ 재첨삭',results:'채점 결과',attempt:'{n}번째',noRec:'먼저 녹음해 주세요',noWrite:'먼저 답을 입력해 주세요',notAll:'모든 문제를 풀어 주세요',noBrowser:'Chrome 또는 Edge를 사용해 주세요'},
+  'th':    {loading:'กำลังสร้างบทเรียนวันนี้…',loadSub:'ครั้งแรกใช้เวลา ~10 วินาที',hint:'กด「เริ่มอัดเสียง」(Chrome/Edge)',rec:'🔴 กำลังอัดเสียง…',done:'อัดเสร็จ — กด AI ให้คะแนน',scoring:'กำลังให้คะแนน…',rescore:'🔄 ให้คะแนนใหม่',grading:'กำลังตรวจ…',regrade:'✏️ ตรวจใหม่',results:'ผลคะแนน',attempt:'ครั้งที่ {n}',noRec:'กรุณาอัดเสียงก่อน',noWrite:'กรุณาพิมพ์คำตอบก่อน',notAll:'กรุณาตอบทุกข้อ',noBrowser:'ใช้ Chrome หรือ Edge'},
+  'vi':    {loading:'Đang tạo bài học hôm nay…',loadSub:'Lần đầu ~10 giây',hint:'Nhấn「Bắt đầu ghi âm」(Chrome/Edge)',rec:'🔴 Đang ghi âm…',done:'Xong — nhấn AI chấm điểm',scoring:'Đang chấm…',rescore:'🔄 Chấm lại',grading:'Đang sửa…',regrade:'✏️ Sửa lại',results:'Kết quả',attempt:'Lần {n}',noRec:'Vui lòng ghi âm trước',noWrite:'Vui lòng nhập câu trả lời',notAll:'Hãy trả lời tất cả câu hỏi',noBrowser:'Dùng Chrome hoặc Edge'},
+  'id':    {loading:'Membuat pelajaran hari ini…',loadSub:'Pertama kali ~10 detik',hint:'Tekan「Mulai Rekam」(Chrome/Edge)',rec:'🔴 Merekam…',done:'Selesai — tekan AI nilai',scoring:'Menilai…',rescore:'🔄 Nilai ulang',grading:'Mengoreksi…',regrade:'✏️ Koreksi ulang',results:'Hasil',attempt:'Ke-{n}',noRec:'Rekam dulu',noWrite:'Isi jawaban dulu',notAll:'Jawab semua soal dulu',noBrowser:'Gunakan Chrome atau Edge'},
+};
+function t(key, n) {
+  const d = UI[currentLang] || UI['zh-TW'];
+  return (d[key] || key).replace('{n}', n || '');
+}
+
+// ── Toast ──
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast-msg' + (type === 'error' ? ' error' : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
 let currentLang = localStorage.getItem('oet_lang') || 'zh-TW';
 
 function initLangUI() {
@@ -707,6 +734,13 @@ function initLangUI() {
     el.classList.toggle('active', el.dataset.lang === currentLang);
     el.onclick = () => setLang(el.dataset.lang);
   });
+  // Update loading & record hint text
+  const lt = document.getElementById('loadingText');
+  const ls = document.getElementById('loadingSubText');
+  const rs = document.getElementById('recordStatus');
+  if (lt) lt.textContent = t('loading');
+  if (ls) ls.textContent = t('loadSub');
+  if (rs && !rs.textContent) rs.textContent = t('hint');
 }
 function toggleLangMenu() {
   const m = document.getElementById('langMenu');
@@ -717,15 +751,32 @@ function setLang(lang) {
   localStorage.setItem('oet_lang', lang);
   currentLang = lang;
   document.getElementById('langMenu').style.display = 'none';
-  // clear lesson display and reload
+  // Reset state
+  scoreHistory = [];
+  finalTranscript = '';
+  if (recognition) { try { recognition.onend=null; recognition.abort(); } catch(e){} recognition=null; }
+  // Reset tab to vocab
+  document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-tab="vocab"]').classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(p => p.style.display='none');
+  document.getElementById('tab-vocab').style.display='block';
+  // Reset dynamic fields
+  document.getElementById('transcriptBox').style.display='none';
+  document.getElementById('speakFeedback').style.display='none';
+  document.getElementById('writeFeedback').style.display='none';
+  document.getElementById('readResults').style.display='none';
+  document.getElementById('scoreHistory').innerHTML='';
+  // Reload lesson
   document.getElementById('lessonBox').style.display = 'none';
   document.getElementById('loadingBox').style.display = 'block';
+  initLangUI();
   lesson = null;
   fetch('/api/lesson?lang=' + lang)
     .then(r => r.json())
-    .then(l => { lesson = l; initLangUI(); renderLesson(l); })
-    .catch(e => document.getElementById('loadingBox').innerHTML =
-      '<div class="danger-box m-3">⚠️ ' + e.message + '</div>');
+    .then(l => { lesson = l; renderLesson(l); })
+    .catch(e => {
+      document.getElementById('loadingText').textContent = '⚠️ ' + e.message;
+    });
 }
 document.addEventListener('click', e => {
   if (!e.target.closest('.lang-wrap')) document.getElementById('langMenu').style.display = 'none';
@@ -836,32 +887,33 @@ function renderReadQuestions(qs) {
 
 function checkReading() {
   const qs = lesson.reading.questions;
+  // Validate all answered
+  const unanswered = qs.filter((_, i) => !document.querySelector(`input[name="rq${i}"]:checked`));
+  if (unanswered.length > 0) { toast(t('notAll'), 'error'); return; }
   let correct = 0;
-  let html = '<div class="fw-semibold small mb-2">批改結果</div>';
+  let html = `<div class="fw-semibold small mb-2">${t('results')}</div>`;
   qs.forEach((q, i) => {
     const sel = document.querySelector(`input[name="rq${i}"]:checked`);
-    const chosen = sel ? sel.value : null;
+    const chosen = sel.value;
     const isRight = chosen === q.answer;
     if (isRight) correct++;
     const icon = isRight ? '✅' : '❌';
     const bg = isRight ? '#f0fdf4' : '#fff1f2';
     const bd = isRight ? '#22c55e' : 'var(--danger)';
     html += `<div class="mb-3 p-3 rounded-3 small" style="background:${bg};border-left:3px solid ${bd}">
-      <div class="fw-semibold mb-1">${icon} 第 ${i+1} 題 — 正確答案：${q.answer}</div>
-      ${!isRight && chosen ? `<div class="mb-1" style="color:var(--danger)">你選了：${chosen}</div>` : ''}
+      <div class="fw-semibold mb-1">${icon} Q${i+1} — ✓ ${q.answer}</div>
+      ${!isRight ? `<div class="mb-1" style="color:var(--danger)">✗ ${chosen}</div>` : ''}
       <div>${q.explanation}</div>
     </div>`;
   });
-  html += `<div class="fw-bold text-center mt-2" style="font-size:1.1rem">
-    得分：${correct} / ${qs.length} ${'⭐'.repeat(correct)}
-  </div>`;
+  html += `<div class="fw-bold text-center mt-2" style="font-size:1.1rem">${correct} / ${qs.length} ${'⭐'.repeat(correct)}</div>`;
   document.getElementById('readResults').innerHTML = html;
   document.getElementById('readResults').style.display = 'block';
-  document.getElementById('readSubmitBtn').textContent = '🔄 重新作答';
+  document.getElementById('readSubmitBtn').textContent = '🔄';
   document.getElementById('readSubmitBtn').onclick = () => {
     document.querySelectorAll('[name^="rq"]').forEach(r => r.checked = false);
     document.getElementById('readResults').style.display = 'none';
-    document.getElementById('readSubmitBtn').textContent = '提交答案';
+    document.getElementById('readSubmitBtn').textContent = '✓ Submit';
     document.getElementById('readSubmitBtn').onclick = checkReading;
   };
 }
@@ -877,7 +929,7 @@ function speakWord(word) {
 // Listening with line highlight
 function playListening() {
   const btn = document.getElementById('playBtn');
-  if (!window.speechSynthesis) { alert('請使用 Chrome 或 Edge'); return; }
+  if (!window.speechSynthesis) { toast(t('noBrowser'), 'error'); return; }
   window.speechSynthesis.cancel();
   btn.disabled = true; btn.textContent = '🔊 播放中...';
   const lines = lesson.listening.dialogue;
@@ -954,11 +1006,11 @@ function highlightTranscript(text) {
 
 function startRecord() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { alert('請使用 Chrome 或 Edge 瀏覽器'); return; }
+  if (!SR) { toast(t('noBrowser'), 'error'); return; }
   finalTranscript = '';
   document.getElementById('startBtn').disabled = true;
   document.getElementById('stopBtn').disabled = false;
-  document.getElementById('recordStatus').textContent = '🔴 錄音中...';
+  document.getElementById('recordStatus').textContent = t('rec');
   recognition = new SR();
   recognition.lang = 'en-US'; recognition.continuous = true; recognition.interimResults = true;
   recognition.onresult = e => {
@@ -970,7 +1022,7 @@ function startRecord() {
     const full = finalTranscript + interim;
     document.getElementById('transcriptText').innerHTML = highlightTranscript(full);
     document.getElementById('transcriptBox').style.display = 'block';
-    const words = full.trim().split(/\\s+/);
+    const words = full.trim().split(/\s+/);
     renderPhrases(lesson.speaking.key_phrases, words);
   };
   recognition.onend = () => {
@@ -982,38 +1034,41 @@ function startRecord() {
 function stopRecord() {
   document.getElementById('startBtn').disabled = false;
   document.getElementById('stopBtn').disabled = true;
-  document.getElementById('recordStatus').textContent = '錄音完成，可按 AI 評分';
+  document.getElementById('recordStatus').textContent = t('done');
   if (recognition) { try { recognition.onend = null; recognition.abort(); } catch(e) {} recognition = null; }
-  const t = finalTranscript.trim();
-  document.getElementById('transcriptText').innerHTML = highlightTranscript(t);
-  if (t) document.getElementById('transcriptBox').style.display = 'block';
+  const txt = finalTranscript.trim();
+  document.getElementById('transcriptText').innerHTML = highlightTranscript(txt);
+  if (txt) document.getElementById('transcriptBox').style.display = 'block';
 }
 
-async function evalSpeak() {
+async function evalSpeak(btn) {
   const spoken = document.getElementById('transcriptText').textContent.trim();
-  if (!spoken) { alert('請先錄音'); return; }
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '評分中...';
-  const f = await (await fetch('/api/evaluate', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({spoken, scenario: lesson.speaking.scenario, sample: lesson.speaking.sample, lang: currentLang})
-  })).json();
-  // Score history
-  scoreHistory.push(f.score);
-  const best = Math.max(...scoreHistory);
-  document.getElementById('scoreHistory').innerHTML =
-    scoreHistory.map((s,i) => `<span class="score-pill ${s===best?'best':''}">第${i+1}次 ${s}⭐</span>`).join('');
-  // Feedback
-  const stars = '⭐'.repeat(f.score) + '☆'.repeat(5 - f.score);
-  document.getElementById('speakFeedback').innerHTML = `
-    <div class="fw-bold mb-2 fs-5">${stars} <span style="font-size:.95rem">${f.score}/5</span></div>
-    <div class="mb-2">✅ ${f.good}</div>
-    <div class="mb-2">📈 ${f.improve}</div>
-    <div class="mb-2 small">📝 <b>用詞建議：</b>${f.vocabulary}</div>
-    <div class="mt-2 p-2 rounded-2 small" style="background:var(--p-light);color:var(--p-dark)">🎯 OET 提示：${f.oet_tip}</div>
-  `;
-  document.getElementById('speakFeedback').style.display = 'block';
-  btn.disabled = false; btn.textContent = '🔄 重新評分';
+  if (!spoken) { toast(t('noRec'), 'error'); return; }
+  btn.disabled = true; btn.textContent = t('scoring');
+  try {
+    const f = await (await fetch('/api/evaluate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({spoken, scenario: lesson.speaking.scenario, sample: lesson.speaking.sample, lang: currentLang})
+    })).json();
+    scoreHistory.push(f.score);
+    const best = Math.max(...scoreHistory);
+    document.getElementById('scoreHistory').innerHTML =
+      scoreHistory.map((s,i) => `<span class="score-pill ${s===best?'best':''}">${t('attempt',i+1)} ${s}⭐</span>`).join('');
+    const stars = '⭐'.repeat(f.score) + '☆'.repeat(5 - f.score);
+    document.getElementById('speakFeedback').innerHTML = `
+      <div class="fw-bold mb-2 fs-5">${stars} <span style="font-size:.95rem">${f.score}/5</span></div>
+      <div class="mb-2">✅ ${f.good}</div>
+      <div class="mb-2">📈 ${f.improve}</div>
+      <div class="mb-2 small">📝 ${f.vocabulary}</div>
+      <div class="mt-2 p-2 rounded-2 small" style="background:var(--p-light);color:var(--p-dark)">🎯 ${f.oet_tip}</div>
+    `;
+    document.getElementById('speakFeedback').style.display = 'block';
+    btn.textContent = t('rescore');
+  } catch(e) {
+    toast('⚠️ ' + e.message, 'error');
+    btn.textContent = t('rescore');
+  }
+  btn.disabled = false;
 }
 
 function toggleSample() {
@@ -1023,33 +1078,39 @@ function toggleSample() {
 
 // Writing
 function updateWordCount() {
-  const words = document.getElementById('writeAnswer').value.trim().split(/\\s+/).filter(w=>w).length;
-  document.getElementById('wordCount').textContent = words + ' 字';
+  const words = document.getElementById('writeAnswer').value.trim().split(/\s+/).filter(w=>w).length;
+  document.getElementById('wordCount').textContent = words + ' words';
 }
 
 async function evalWrite() {
   const answer = document.getElementById('writeAnswer').value.trim();
-  if (!answer) { alert('請先輸入答案'); return; }
+  if (!answer) { toast(t('noWrite'), 'error'); return; }
   const btn = document.getElementById('writeSubmitBtn');
-  btn.disabled = true; btn.textContent = '批改中...';
-  const f = await (await fetch('/api/evaluate-writing', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ answer, task: document.getElementById('writeTask').textContent, tip: document.getElementById('writeTip').textContent, lang: currentLang })
-  })).json();
-  const stars = '⭐'.repeat(f.score) + '☆'.repeat(5-f.score);
-  document.getElementById('writeFeedback').innerHTML = `
-    <div class="fw-bold mb-2">${stars} ${f.score}/5 &nbsp;<span class="badge" style="background:var(--p-light);color:var(--p);font-size:.78rem">${f.oet_level}</span></div>
-    <div class="mb-1 small">📝 <b>文法：</b>${f.grammar}</div>
-    <div class="mb-1 small">📖 <b>用詞：</b>${f.vocabulary}</div>
-    <div class="mb-2 small">🏗️ <b>結構：</b>${f.structure}</div>
-    <div class="p-2 rounded-2 small" style="background:#f0fdf4;border-left:3px solid #22c55e">
-      <div class="fw-semibold text-success mb-1">✓ 改寫示範</div>
-      <div class="fst-italic">${f.rewrite}</div>
-    </div>
-    <div class="mt-2 small text-muted">💬 ${f.summary}</div>
-  `;
-  document.getElementById('writeFeedback').style.display = 'block';
-  btn.disabled = false; btn.textContent = '✏️ 重新批改';
+  btn.disabled = true; btn.textContent = t('grading');
+  try {
+    const f = await (await fetch('/api/evaluate-writing', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ answer, task: document.getElementById('writeTask').textContent, tip: document.getElementById('writeTip').textContent, lang: currentLang })
+    })).json();
+    const stars = '⭐'.repeat(f.score) + '☆'.repeat(5-f.score);
+    document.getElementById('writeFeedback').innerHTML = `
+      <div class="fw-bold mb-2">${stars} ${f.score}/5 &nbsp;<span class="badge" style="background:var(--p-light);color:var(--p);font-size:.78rem">${f.oet_level}</span></div>
+      <div class="mb-1 small">📝 ${f.grammar}</div>
+      <div class="mb-1 small">📖 ${f.vocabulary}</div>
+      <div class="mb-2 small">🏗️ ${f.structure}</div>
+      <div class="p-2 rounded-2 small" style="background:#f0fdf4;border-left:3px solid #22c55e">
+        <div class="fw-semibold text-success mb-1">✓</div>
+        <div class="fst-italic">${f.rewrite}</div>
+      </div>
+      <div class="mt-2 small text-muted">💬 ${f.summary}</div>
+    `;
+    document.getElementById('writeFeedback').style.display = 'block';
+    btn.textContent = t('regrade');
+  } catch(e) {
+    toast('⚠️ ' + e.message, 'error');
+    btn.textContent = t('regrade');
+  }
+  btn.disabled = false;
 }
 
 async function markComplete() {
@@ -1057,7 +1118,7 @@ async function markComplete() {
   location.reload();
 }
 async function markTired() {
-  if (!confirm('記錄今天休息？連續天數將重置為 0。')) return;
+  if (!confirm('記錄今天休息？')) return;
   await fetch('/api/tired', {method:'POST'});
   location.reload();
 }
